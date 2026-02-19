@@ -45,7 +45,7 @@ for proj in approved_projects:
 print("🧠 Rebuilding FAISS Index (This calls Google API, please wait)...")
 
 try:
-    embeddings = GoogleGenerativeAIEmbeddings(model="models/text-embedding-004")
+    embeddings = GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001")
     
     # Create fresh DB
     vector_db = FAISS.from_documents(documents, embeddings)

@@ -116,3 +116,6 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
+# Auth Redirects
+LOGIN_REDIRECT_URL = 'student_chat'  # Go here after login
+LOGOUT_REDIRECT_URL = 'login'        # Go here after logout

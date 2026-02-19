@@ -2,6 +2,15 @@
 <html>
 <head>
     <title>ProCheck - Student Chat</title>
+    <div style="text-align: right; padding: 10px; background: #f0f0f0;">
+    <span>Welcome, <strong>{{ user.username }}</strong>!</span>
+    <form action="{% url 'logout' %}" method="post" style="display:inline;">
+        {% csrf_token %}
+        <button type="submit">Logout</button>
+    </form>
+
+</div>
+<hr>
     <style>
         body { font-family: sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; background-color: #f4f4f9; }
         .chat-container { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
@@ -26,13 +35,24 @@
         {% if response_message %}
             <div class="bot-message">🤖 AI Bot:</div>
             <p class="{{ message_class }}">{{ response_message }}</p>
+            
             {% if similar_project %}
-                <p style="background: #ffe6e6; padding: 10px; border-radius: 5px;">
-                    <strong>Found Duplicate:</strong> "{{ similar_project }}"<br>
-                    <em>(Similarity Score: {{ similarity_score }})</em>
-                </p>
+                <div style="background: #ffe6e6; padding: 15px; border-radius: 8px; border: 1px solid #ffcccc; margin-top: 10px;">
+                    <strong>⛔ Conflict Found:</strong><br>
+                    Your idea overlaps with: <em>"{{ similar_project }}"</em> <small>(Score: {{ similarity_score }})</small>
+                </div>
             {% endif %}
-        {% else %}
+
+            {% if suggestions %}
+                <div style="background: #e8f6f3; padding: 20px; border-radius: 8px; border: 1px solid #a2d9ce; margin-top: 20px;">
+                    <h3 style="color: #16a085; margin-top: 0;">💡 Better Ideas for You</h3>
+                    <p>Don't worry! Here are 3 unique variations of your idea that are likely to be approved:</p>
+                    <div style="margin-left: 20px; color: #2c3e50;">
+                        {{ suggestions|safe }} 
+                    </div>
+                </div>
+            {% endif %}
+            {% else %}
             <div class="bot-message">🤖 AI Bot:</div>
             <p>Hello! I am ProCheck. Please describe your project idea in detail (Title + Abstract), and I will check if it's unique.</p>
         {% endif %}
@@ -49,6 +69,55 @@
         
         <button type="submit">Check Originality</button>
     </form>
+    </form>
+
+    <hr style="margin: 30px 0; border: 0; border-top: 1px solid #ddd;">
+
+    <h2>My Submissions</h2>
+    
+    {% if my_projects %}
+        <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+            <thead>
+                <tr style="background: #eee; text-align: left;">
+                    <th style="padding: 10px; border-bottom: 2px solid #ddd;">Title</th>
+                    <th style="padding: 10px; border-bottom: 2px solid #ddd;">Status</th>
+                    <th style="padding: 10px; border-bottom: 2px solid #ddd;">Mentor Feedback</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for project in my_projects %}
+                <tr>
+                    <td style="padding: 10px; border-bottom: 1px solid #eee;">
+                        <strong>{{ project.title }}</strong><br>
+                        <small style="color: #777;">{{ project.created_at|date:"M d, Y" }}</small>
+                    </td>
+                    
+                    <td style="padding: 10px; border-bottom: 1px solid #eee;">
+                        {% if project.status == 'APPROVED' %}
+                            <span style="color: green; font-weight: bold;">✅ Approved</span>
+                        {% elif project.status == 'REJECTED' %}
+                            <span style="color: red; font-weight: bold;">❌ Rejected</span>
+                        {% else %}
+                            <span style="color: orange; font-weight: bold;">⏳ Pending</span>
+                        {% endif %}
+                    </td>
+                    
+                    <td style="padding: 10px; border-bottom: 1px solid #eee; color: #555;">
+                        {% if project.mentor_comment %}
+                            "{{ project.mentor_comment }}"
+                        {% else %}
+                            <em>No feedback yet</em>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p style="text-align: center; color: #777;">You haven't submitted any projects yet.</p>
+    {% endif %}
+
+</div>
 </div>
 
 </body>

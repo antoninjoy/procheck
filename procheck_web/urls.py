@@ -3,5 +3,6 @@ from django.urls import path, include
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', include('main.urls')), # Link the 'main' app to the home page
+    path('accounts/', include('django.contrib.auth.urls')), # <--- Add this line
+    path('', include('main.urls')),
 ]
