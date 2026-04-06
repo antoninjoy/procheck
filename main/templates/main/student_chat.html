@@ -2,15 +2,16 @@
 <html>
 <head>
     <title>ProCheck - Student Chat</title>
+    
     <div style="text-align: right; padding: 10px; background: #f0f0f0;">
-    <span>Welcome, <strong>{{ user.username }}</strong>!</span>
-    <form action="{% url 'logout' %}" method="post" style="display:inline;">
-        {% csrf_token %}
-        <button type="submit">Logout</button>
-    </form>
-
-</div>
-<hr>
+        <span>Welcome, <strong>{{ user.username }}</strong>!</span>
+        <form action="{% url 'logout' %}" method="post" style="display:inline;">
+            {% csrf_token %}
+            <button type="submit">Logout</button>
+        </form>
+    </div>
+    <hr>
+    
     <style>
         body { font-family: sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; background-color: #f4f4f9; }
         .chat-container { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
@@ -18,11 +19,29 @@
         .message-box { border: 1px solid #ddd; padding: 15px; margin-bottom: 20px; border-radius: 5px; min-height: 100px; background: #fafafa; }
         .bot-message { color: #2ecc71; font-weight: bold; margin-bottom: 5px; }
         .user-message { color: #3498db; font-weight: bold; margin-bottom: 5px; }
-        textarea { width: 100%; height: 100px; padding: 10px; border: 1px solid #ccc; border-radius: 5px; margin-top: 10px; }
+        textarea { width: 100%; height: 100px; padding: 10px; border: 1px solid #ccc; border-radius: 5px; margin-top: 10px; box-sizing: border-box; }
         button { background-color: #3498db; color: white; border: none; padding: 10px 20px; font-size: 16px; border-radius: 5px; cursor: pointer; margin-top: 10px; }
         button:hover { background-color: #2980b9; }
         .warning { color: #e74c3c; font-weight: bold; }
         .success { color: #27ae60; font-weight: bold; }
+        
+        /* New CSS for the Loading Spinner */
+        .spinner {
+            border: 3px solid rgba(0, 0, 0, 0.1);
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border-left-color: #16a085;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            vertical-align: middle;
+            margin-right: 10px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        /* Blinking cursor for typewriter */
+        .cursor { display: inline-block; width: 8px; height: 15px; background-color: #2c3e50; animation: blink 1s step-end infinite; vertical-align: bottom; margin-left: 2px;}
+        @keyframes blink { 50% { opacity: 0; } }
     </style>
 </head>
 <body>
@@ -30,7 +49,6 @@
 <div class="chat-container">
     <h1>🎓 Project Idea Checker</h1>
     
-    <!-- Area to display the conversation -->
     <div class="message-box">
         {% if response_message %}
             <div class="bot-message">🤖 AI Bot:</div>
@@ -43,38 +61,116 @@
                 </div>
             {% endif %}
 
-            {% if suggestions %}
+            {% if needs_suggestions %}
                 <div style="background: #e8f6f3; padding: 20px; border-radius: 8px; border: 1px solid #a2d9ce; margin-top: 20px;">
                     <h3 style="color: #16a085; margin-top: 0;">💡 Better Ideas for You</h3>
-                    <p>Don't worry! Here are 3 unique variations of your idea that are likely to be approved:</p>
-                    <div style="margin-left: 20px; color: #2c3e50;">
-                        {{ suggestions|safe }} 
+                    
+                    <div id="suggestions-loader" style="color: #16a085; font-style: italic; margin-top: 15px;">
+                        <div class="spinner"></div> Gemini is generating unique alternatives based on your interests...
                     </div>
+                    
+                    <div id="suggestions-content" style="margin-left: 20px; color: #2c3e50; margin-top: 15px;"></div>
                 </div>
+
+                <script>
+                document.addEventListener("DOMContentLoaded", function() {
+                    const title = "{{ failed_title|escapejs }}";
+                    const abstract = "{{ failed_abstract|escapejs }}";
+                    const similar = "{{ similar_project_name|escapejs }}";
+                    
+                    // Grab the CSRF token from the form below
+                    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+                    const formData = new FormData();
+                    formData.append('title', title);
+                    formData.append('abstract', abstract);
+                    formData.append('similar_project', similar);
+
+                    // Call the new API endpoint
+                    fetch("{% url 'generate_suggestions_api' %}", {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': csrfToken
+                        },
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        // Hide the loader
+                        document.getElementById('suggestions-loader').style.display = 'none';
+                        
+                        if (data.status === 'success') {
+                            const targetElement = document.getElementById('suggestions-content');
+                            // Start the typewriter effect at 20 milliseconds per character
+                            typeWriterHTML(targetElement, data.suggestions, 20); 
+                        } else {
+                            document.getElementById('suggestions-content').innerHTML = "<p style='color:red;'>⚠️ Failed to load suggestions.</p>";
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        document.getElementById('suggestions-loader').style.display = 'none';
+                        document.getElementById('suggestions-content').innerHTML = "<p style='color:red;'>⚠️ A network error occurred.</p>";
+                    });
+                });
+
+                // Function to handle typewriter effect without breaking HTML tags
+                function typeWriterHTML(element, htmlString, speed) {
+                    let i = 0;
+                    let isTag = false;
+                    let text = "";
+                    
+                    function type() {
+                        if (i < htmlString.length) {
+                            let char = htmlString.charAt(i);
+                            text += char;
+                            // Add the blinking cursor to the end of the text
+                            element.innerHTML = text + '<span class="cursor"></span>';
+
+                            if (char === '<') isTag = true;
+                            if (char === '>') isTag = false;
+
+                            i++;
+                            
+                            // Instantly output HTML tags so they don't break the page design
+                            if (isTag || char === '>') {
+                                type(); 
+                            } else {
+                                setTimeout(type, speed);
+                            }
+                        } else {
+                            // When done, remove the blinking cursor
+                            element.innerHTML = text;
+                        }
+                    }
+                    type();
+                }
+                </script>
             {% endif %}
-            {% else %}
+
+        {% else %}
             <div class="bot-message">🤖 AI Bot:</div>
             <p>Hello! I am ProCheck. Please describe your project idea in detail (Title + Abstract), and I will check if it's unique.</p>
         {% endif %}
     </div>
 
-    <!-- Form to send new message -->
     <form method="POST">
         {% csrf_token %}
         <label><strong>Project Title:</strong></label><br>
-        <input type="text" name="title" style="width: 100%; padding: 8px; margin-bottom: 10px;" required placeholder="e.g., Library Management System">
+        <input type="text" name="title" style="width: 100%; padding: 8px; margin-bottom: 10px; box-sizing: border-box;" required placeholder="e.g., Library Management System">
         
         <br><label><strong>Project Abstract (Detail):</strong></label><br>
         <textarea name="abstract" required placeholder="Describe what your project does..."></textarea>
-        <select name="mentor_id" required style="width: 100%; padding: 10px; margin-bottom: 15px; border-radius: 5px; border: 1px solid #ccc; background-color: white;">
+        
+        <br><label><strong>Select Mentor:</strong></label><br>
+        <select name="mentor_id" required style="width: 100%; padding: 10px; margin-bottom: 15px; border-radius: 5px; border: 1px solid #ccc; background-color: white; box-sizing: border-box;">
             <option value="" disabled selected>👨‍🏫 Select a Mentor to review this project</option>
             {% for mentor in mentors %}
                 <option value="{{ mentor.id }}">{{ mentor.username }}</option>
             {% endfor %}
         </select>
         
-        <button type="submit">Check Originality</button>
-    </form>
+        <button type="submit" style="width: 100%;">Check Originality</button>
     </form>
 
     <hr style="margin: 30px 0; border: 0; border-top: 1px solid #ddd;">
@@ -123,7 +219,6 @@
         <p style="text-align: center; color: #777;">You haven't submitted any projects yet.</p>
     {% endif %}
 
-</div>
 </div>
 
 </body>

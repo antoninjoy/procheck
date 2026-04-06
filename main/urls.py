@@ -16,4 +16,5 @@ urlpatterns = [
     path('signup/', views.signup, name='signup'),
 
     path('mentor/approved/', views.approved_projects, name='approved_projects'),
+    path('api/generate-suggestions/', views.generate_suggestions_api, name='generate_suggestions_api'),
 ]

@@ -14,7 +14,7 @@ from dotenv import load_dotenv
 
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
-
+from django.http import JsonResponse
 # Load API Key once when server starts
 load_dotenv()
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
@@ -53,6 +53,12 @@ def student_chat(request):
     # Fetch all mentors (staff members) to show in the dropdown
     mentors = User.objects.filter(is_staff=True)
 
+    # --- NEW VARIABLES FOR JAVASCRIPT ---
+    needs_suggestions = False
+    failed_title = ""
+    failed_abstract = ""
+    similar_project_name = ""
+
     if request.method == 'POST':
         user_title = request.POST.get('title')
         user_abstract = request.POST.get('abstract')
@@ -85,45 +91,15 @@ def student_chat(request):
                             response_message = f"⚠️ Duplicate Detected! Your idea is too similar to: '{similar_project}'"
                             message_class = "warning"
                             
-                            # --- ASK GEMINI FOR SUGGESTIONS ---
-                            try:
-                                llm = ChatGoogleGenerativeAI(model="models/gemini-flash-latest", google_api_key=GOOGLE_API_KEY)
-                                
-                                prompt_text = f"""
-                                The student proposed a project: "{user_title}" ({user_abstract}).
-                                It was rejected because it duplicates: "{similar_project}".
-                                
-                                Generate 3 alternative, advanced project ideas based on the student's interest.
-                                
-                                CRITICAL RULES:
-                                1. The new ideas must be DIFFERENT from "{similar_project}".
-                                2. Output ONLY an HTML list (<ul><li>...</li></ul>).
-                                3. Use <b> tags for titles.
-                                4. DO NOT use Markdown characters like ** or ### or *.
-                                5. Do not include introductory text like "Here are suggestions".
-                                """
-                                
-                                ai_response = llm.invoke([HumanMessage(content=prompt_text)])
-                                
-                                raw_content = ai_response.content
-                                suggestions = ""
-
-                                if isinstance(raw_content, list):
-                                    for part in raw_content:
-                                        if isinstance(part, dict) and 'text' in part:
-                                            suggestions += part['text']
-                                        elif isinstance(part, str):
-                                            suggestions += part
-                                else:
-                                    suggestions = raw_content
-
-                                suggestions = suggestions.replace("```html", "").replace("```", "")
-                                suggestions = suggestions.replace("**", "")  
-                                suggestions = suggestions.replace("###", "") 
-                                suggestions = suggestions.replace("* ", "")  
-                                
-                            except Exception as ai_e:
-                                print(f"Error generating suggestions: {ai_e}")
+                            # ==========================================
+                            # WE REMOVED THE SLOW GEMINI API CALL HERE.
+                            # Instead, we just tell the HTML template to load the 
+                            # suggestions in the background using Javascript!
+                            # ==========================================
+                            needs_suggestions = True
+                            failed_title = user_title
+                            failed_abstract = user_abstract
+                            similar_project_name = similar_project
 
                         else:
                             # Save the project with the assigned mentor
@@ -142,7 +118,6 @@ def student_chat(request):
                     message_class = "warning"
             else:
                 # --- AI BRAIN IS EMPTY (FIRST PROJECT) ---
-                # Save the project with the assigned mentor
                 Project.objects.create(
                     student=request.user,
                     assigned_mentor=chosen_mentor,
@@ -160,9 +135,14 @@ def student_chat(request):
         'similarity_score': similarity_score,
         'my_projects': my_projects,
         'suggestions': suggestions,
-        'mentors': mentors
+        'mentors': mentors,
+        
+        # --- NEW VARIABLES PASSED TO HTML ---
+        'needs_suggestions': needs_suggestions,
+        'failed_title': failed_title,
+        'failed_abstract': failed_abstract,
+        'similar_project_name': similar_project_name,
     })
-
 
 @staff_member_required 
 def mentor_dashboard(request):
@@ -221,3 +201,49 @@ def approved_projects(request):
     # This remains unfiltered so all mentors can see the global database of approved projects
     projects = Project.objects.filter(status='APPROVED').order_by('-created_at')
     return render(request, 'main/approved_projects.html', {'projects': projects})
+@login_required
+def generate_suggestions_api(request):
+    if request.method == 'POST':
+        user_title = request.POST.get('title')
+        user_abstract = request.POST.get('abstract')
+        similar_project = request.POST.get('similar_project')
+        
+        try:
+            llm = ChatGoogleGenerativeAI(model="models/gemini-flash-latest", google_api_key=GOOGLE_API_KEY)
+            
+            prompt_text = f"""
+            The student proposed a project: "{user_title}" ({user_abstract}).
+            It was rejected because it duplicates: "{similar_project}".
+            
+            Generate 3 alternative, advanced project ideas based on the student's interest.
+            
+            CRITICAL RULES:
+            1. The new ideas must be DIFFERENT from "{similar_project}".
+            2. Output ONLY an HTML list (<ul><li>...</li></ul>).
+            3. Use <b> tags for titles.
+            4. DO NOT use Markdown characters like ** or ### or *.
+            5. Do not include introductory text like "Here are suggestions".
+            """
+            
+            ai_response = llm.invoke([HumanMessage(content=prompt_text)])
+            raw_content = ai_response.content
+            suggestions = ""
+
+            if isinstance(raw_content, list):
+                for part in raw_content:
+                    if isinstance(part, dict) and 'text' in part:
+                        suggestions += part['text']
+                    elif isinstance(part, str):
+                        suggestions += part
+            else:
+                suggestions = raw_content
+
+            # Clean up formatting
+            suggestions = suggestions.replace("```html", "").replace("```", "")
+            
+            return JsonResponse({'status': 'success', 'suggestions': suggestions})
+            
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+            
+    return JsonResponse({'status': 'invalid request'}, status=400)
