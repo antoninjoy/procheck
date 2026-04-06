@@ -1,225 +1,414 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ProCheck - Student Chat</title>
     
-    <div style="text-align: right; padding: 10px; background: #f0f0f0;">
-        <span>Welcome, <strong>{{ user.username }}</strong>!</span>
-        <form action="{% url 'logout' %}" method="post" style="display:inline;">
-            {% csrf_token %}
-            <button type="submit">Logout</button>
-        </form>
-    </div>
-    <hr>
-    
     <style>
-        body { font-family: sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; background-color: #f4f4f9; }
-        .chat-container { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        h1 { color: #2c3e50; text-align: center; }
-        .message-box { border: 1px solid #ddd; padding: 15px; margin-bottom: 20px; border-radius: 5px; min-height: 100px; background: #fafafa; }
-        .bot-message { color: #2ecc71; font-weight: bold; margin-bottom: 5px; }
-        .user-message { color: #3498db; font-weight: bold; margin-bottom: 5px; }
-        textarea { width: 100%; height: 100px; padding: 10px; border: 1px solid #ccc; border-radius: 5px; margin-top: 10px; box-sizing: border-box; }
-        button { background-color: #3498db; color: white; border: none; padding: 10px 20px; font-size: 16px; border-radius: 5px; cursor: pointer; margin-top: 10px; }
-        button:hover { background-color: #2980b9; }
-        .warning { color: #e74c3c; font-weight: bold; }
-        .success { color: #27ae60; font-weight: bold; }
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+        }
+
+        body { 
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            line-height: 1.5;
+        }
+
+        /* --- Header Navigation --- */
+        .top-nav {
+            background-color: var(--card-bg);
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+        .nav-logo { font-size: 20px; font-weight: 700; color: var(--primary); }
+        .nav-user { display: flex; align-items: center; gap: 15px; font-size: 14px; color: var(--text-muted); }
+        .logout-btn {
+            background: none;
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+        .logout-btn:hover { background: var(--bg-color); color: var(--text-main); }
+
+        /* --- Main Layout --- */
+        .main-container {
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 0 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+
+        /* --- Chat Interface --- */
+        .chat-section {
+            background: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
         
-        /* New CSS for the Loading Spinner */
+        .chat-header {
+            background: #f1f5f9;
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--border-color);
+            font-weight: 600;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .chat-history {
+            padding: 25px;
+            min-height: 200px;
+            max-height: 500px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        /* Message Bubbles */
+        .bot-bubble {
+            background-color: var(--bg-color);
+            border: 1px solid var(--border-color);
+            padding: 15px 20px;
+            border-radius: 12px;
+            border-bottom-left-radius: 2px;
+            max-width: 85%;
+            align-self: flex-start;
+        }
+        .bot-bubble-header {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Alert Boxes inside Chat */
+        .alert-box {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+        .alert-warning { background-color: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
+        .alert-success { background-color: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; }
+        .alert-info { background-color: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; }
+
+        /* --- Input Area --- */
+        .chat-input-area {
+            padding: 20px 25px;
+            background: var(--card-bg);
+            border-top: 1px solid var(--border-color);
+        }
+        
+        .input-group { margin-bottom: 15px; }
+        .input-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+        
+        input[type="text"], textarea, select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 14px;
+            box-sizing: border-box;
+            transition: all 0.2s;
+            background-color: #f8fafc;
+        }
+        input[type="text"]:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+            background-color: white;
+        }
+        textarea { resize: vertical; min-height: 80px; }
+
+        .submit-btn {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 15px;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            width: 100%;
+            transition: background 0.2s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+        }
+        .submit-btn:hover { background-color: var(--primary-hover); }
+
+        /* --- Submissions List --- */
+        .submissions-section { margin-top: 20px; }
+        .submissions-section h2 { font-size: 18px; color: var(--text-main); margin-bottom: 15px; }
+        
+        .project-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .project-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        
+        .project-info h4 { margin: 0 0 5px 0; color: var(--text-main); font-size: 16px; }
+        .project-meta { font-size: 12px; color: var(--text-muted); margin-bottom: 10px; }
+        .project-feedback { font-size: 14px; color: #475569; background: #f1f5f9; padding: 10px; border-radius: 6px; margin-top: 10px; border-left: 3px solid #cbd5e1; }
+        
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .status-approved { background: #dcfce7; color: #166534; }
+        .status-rejected { background: #fee2e2; color: #991b1b; }
+        .status-pending { background: #fef9c3; color: #854d0e; }
+
+        /* Typewriter Cursor & Loading */
+        .cursor { display: inline-block; width: 8px; height: 15px; background-color: var(--text-main); animation: blink 1s step-end infinite; vertical-align: bottom; margin-left: 2px;}
+        @keyframes blink { 50% { opacity: 0; } }
+        
         .spinner {
-            border: 3px solid rgba(0, 0, 0, 0.1);
-            width: 20px;
-            height: 20px;
+            border: 2px solid rgba(37, 99, 235, 0.1);
+            width: 16px; height: 16px;
             border-radius: 50%;
-            border-left-color: #16a085;
+            border-left-color: var(--primary);
             animation: spin 1s linear infinite;
             display: inline-block;
             vertical-align: middle;
-            margin-right: 10px;
+            margin-right: 8px;
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        
-        /* Blinking cursor for typewriter */
-        .cursor { display: inline-block; width: 8px; height: 15px; background-color: #2c3e50; animation: blink 1s step-end infinite; vertical-align: bottom; margin-left: 2px;}
-        @keyframes blink { 50% { opacity: 0; } }
+
     </style>
 </head>
 <body>
 
-<div class="chat-container">
-    <h1>🎓 Project Idea Checker</h1>
+<div class="top-nav">
+    <div class="nav-logo">ProCheck</div>
+    <div class="nav-user">
+        <span>Student: <strong>{{ user.username }}</strong></span>
+        <form action="{% url 'logout' %}" method="post" style="display:inline; margin:0;">
+            {% csrf_token %}
+            <button type="submit" class="logout-btn">Log out</button>
+        </form>
+    </div>
+</div>
+
+<div class="main-container">
     
-    <div class="message-box">
-        {% if response_message %}
-            <div class="bot-message">🤖 AI Bot:</div>
-            <p class="{{ message_class }}">{{ response_message }}</p>
+    <div class="chat-section">
+        <div class="chat-header">
+            <span>🤖</span> Idea Validation Assistant
+        </div>
+        
+        <div class="chat-history" id="chatHistory">
             
-            {% if similar_project %}
-                <div style="background: #ffe6e6; padding: 15px; border-radius: 8px; border: 1px solid #ffcccc; margin-top: 10px;">
-                    <strong>⛔ Conflict Found:</strong><br>
-                    Your idea overlaps with: <em>"{{ similar_project }}"</em> <small>(Score: {{ similarity_score }})</small>
-                </div>
-            {% endif %}
-
-            {% if needs_suggestions %}
-                <div style="background: #e8f6f3; padding: 20px; border-radius: 8px; border: 1px solid #a2d9ce; margin-top: 20px;">
-                    <h3 style="color: #16a085; margin-top: 0;">💡 Better Ideas for You</h3>
+            <div class="bot-bubble">
+                <div class="bot-bubble-header">ProCheck AI</div>
+                
+                {% if response_message %}
+                    <p style="margin-top: 0; margin-bottom: 10px;">{{ response_message }}</p>
                     
-                    <div id="suggestions-loader" style="color: #16a085; font-style: italic; margin-top: 15px;">
-                        <div class="spinner"></div> Gemini is generating unique alternatives based on your interests...
-                    </div>
-                    
-                    <div id="suggestions-content" style="margin-left: 20px; color: #2c3e50; margin-top: 15px;"></div>
-                </div>
+                    {% if similar_project %}
+                        <div class="alert-box alert-warning">
+                            <strong>Conflict Detected:</strong> Your idea overlaps with a previous project titled <em>"{{ similar_project }}"</em>.
+                        </div>
+                    {% endif %}
 
-                <script>
-                document.addEventListener("DOMContentLoaded", function() {
-                    const title = "{{ failed_title|escapejs }}";
-                    const abstract = "{{ failed_abstract|escapejs }}";
-                    const similar = "{{ similar_project_name|escapejs }}";
-                    
-                    // Grab the CSRF token from the form below
-                    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+                    {% if needs_suggestions %}
+                        <div class="alert-box alert-info" style="margin-top: 15px;">
+                            <div id="suggestions-loader">
+                                <div class="spinner"></div> Generating unique alternatives...
+                            </div>
+                            <div id="suggestions-content" style="margin-top: 10px;"></div>
+                        </div>
 
-                    const formData = new FormData();
-                    formData.append('title', title);
-                    formData.append('abstract', abstract);
-                    formData.append('similar_project', similar);
+                        <script>
+                        document.addEventListener("DOMContentLoaded", function() {
+                            const title = "{{ failed_title|escapejs }}";
+                            const abstract = "{{ failed_abstract|escapejs }}";
+                            const similar = "{{ similar_project_name|escapejs }}";
+                            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
-                    // Call the new API endpoint
-                    fetch("{% url 'generate_suggestions_api' %}", {
-                        method: 'POST',
-                        headers: {
-                            'X-CSRFToken': csrfToken
-                        },
-                        body: formData
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        // Hide the loader
-                        document.getElementById('suggestions-loader').style.display = 'none';
-                        
-                        if (data.status === 'success') {
-                            const targetElement = document.getElementById('suggestions-content');
-                            // Start the typewriter effect at 20 milliseconds per character
-                            typeWriterHTML(targetElement, data.suggestions, 20); 
-                        } else {
-                            document.getElementById('suggestions-content').innerHTML = "<p style='color:red;'>⚠️ Failed to load suggestions.</p>";
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        document.getElementById('suggestions-loader').style.display = 'none';
-                        document.getElementById('suggestions-content').innerHTML = "<p style='color:red;'>⚠️ A network error occurred.</p>";
-                    });
-                });
+                            const formData = new FormData();
+                            formData.append('title', title);
+                            formData.append('abstract', abstract);
+                            formData.append('similar_project', similar);
 
-                // Function to handle typewriter effect without breaking HTML tags
-                function typeWriterHTML(element, htmlString, speed) {
-                    let i = 0;
-                    let isTag = false;
-                    let text = "";
-                    
-                    function type() {
-                        if (i < htmlString.length) {
-                            let char = htmlString.charAt(i);
-                            text += char;
-                            // Add the blinking cursor to the end of the text
-                            element.innerHTML = text + '<span class="cursor"></span>';
+                            fetch("{% url 'generate_suggestions_api' %}", {
+                                method: 'POST',
+                                headers: { 'X-CSRFToken': csrfToken },
+                                body: formData
+                            })
+                            .then(response => response.json())
+                            .then(data => {
+                                document.getElementById('suggestions-loader').style.display = 'none';
+                                if (data.status === 'success') {
+                                    typeWriterHTML(document.getElementById('suggestions-content'), data.suggestions, 15); 
+                                } else {
+                                    document.getElementById('suggestions-content').innerHTML = "<span style='color:red;'>Failed to load suggestions.</span>";
+                                }
+                            })
+                            .catch(error => {
+                                document.getElementById('suggestions-loader').style.display = 'none';
+                                document.getElementById('suggestions-content').innerHTML = "<span style='color:red;'>Network error.</span>";
+                            });
+                        });
 
-                            if (char === '<') isTag = true;
-                            if (char === '>') isTag = false;
-
-                            i++;
-                            
-                            // Instantly output HTML tags so they don't break the page design
-                            if (isTag || char === '>') {
-                                type(); 
-                            } else {
-                                setTimeout(type, speed);
+                        function typeWriterHTML(element, htmlString, speed) {
+                            let i = 0; let isTag = false; let text = "";
+                            function type() {
+                                if (i < htmlString.length) {
+                                    let char = htmlString.charAt(i);
+                                    text += char;
+                                    element.innerHTML = text + '<span class="cursor"></span>';
+                                    if (char === '<') isTag = true;
+                                    if (char === '>') isTag = false;
+                                    i++;
+                                    if (isTag || char === '>') { type(); } else { setTimeout(type, speed); }
+                                } else {
+                                    element.innerHTML = text;
+                                    // Scroll to bottom when typing is done
+                                    const chatHistory = document.getElementById('chatHistory');
+                                    chatHistory.scrollTop = chatHistory.scrollHeight;
+                                }
                             }
-                        } else {
-                            // When done, remove the blinking cursor
-                            element.innerHTML = text;
+                            type();
                         }
-                    }
-                    type();
-                }
-                </script>
-            {% endif %}
+                        </script>
+                    {% endif %}
 
+                {% else %}
+                    <p style="margin: 0;">Hello! I am ready to review your project idea. Please provide a title and a detailed abstract below, and I will check it against our database for originality.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="chat-input-area">
+            <form method="POST">
+                {% csrf_token %}
+                
+                <div class="input-group">
+                    <label>Project Title</label>
+                    <input type="text" name="title" required placeholder="e.g., Autonomous Drone Delivery System">
+                </div>
+                
+                <div class="input-group">
+                    <label>Detailed Abstract</label>
+                    <textarea name="abstract" required placeholder="Describe the problem you are solving and your technical approach..."></textarea>
+                </div>
+                
+                <div class="input-group">
+                    <label>Assign to Mentor</label>
+                    <select name="mentor_id" required>
+                        <option value="" disabled selected>Select a faculty mentor...</option>
+                        {% for mentor in mentors %}
+                            <option value="{{ mentor.id }}">{{ mentor.username }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <button type="submit" class="submit-btn">
+                    <span>Validate Project Idea</span>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div class="submissions-section">
+        <h2>My Submissions</h2>
+        
+        {% if my_projects %}
+            {% for project in my_projects %}
+            <div class="project-card">
+                <div class="project-info">
+                    <h4>{{ project.title }}</h4>
+                    <div class="project-meta">Submitted on {{ project.created_at|date:"M d, Y" }}</div>
+                    
+                    {% if project.mentor_comment %}
+                        <div class="project-feedback">
+                            <strong>Mentor Note:</strong> {{ project.mentor_comment }}
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <div class="project-status">
+                    {% if project.status == 'APPROVED' %}
+                        <span class="status-badge status-approved">Approved</span>
+                    {% elif project.status == 'REJECTED' %}
+                        <span class="status-badge status-rejected">Rejected</span>
+                    {% else %}
+                        <span class="status-badge status-pending">Pending Review</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
         {% else %}
-            <div class="bot-message">🤖 AI Bot:</div>
-            <p>Hello! I am ProCheck. Please describe your project idea in detail (Title + Abstract), and I will check if it's unique.</p>
+            <div style="text-align: center; padding: 40px; color: var(--text-muted); background: var(--card-bg); border-radius: 10px; border: 1px dashed var(--border-color);">
+                <span style="font-size: 24px; display: block; margin-bottom: 10px;">📋</span>
+                You haven't submitted any projects yet. Use the chat above to validate your first idea!
+            </div>
         {% endif %}
     </div>
 
-    <form method="POST">
-        {% csrf_token %}
-        <label><strong>Project Title:</strong></label><br>
-        <input type="text" name="title" style="width: 100%; padding: 8px; margin-bottom: 10px; box-sizing: border-box;" required placeholder="e.g., Library Management System">
-        
-        <br><label><strong>Project Abstract (Detail):</strong></label><br>
-        <textarea name="abstract" required placeholder="Describe what your project does..."></textarea>
-        
-        <br><label><strong>Select Mentor:</strong></label><br>
-        <select name="mentor_id" required style="width: 100%; padding: 10px; margin-bottom: 15px; border-radius: 5px; border: 1px solid #ccc; background-color: white; box-sizing: border-box;">
-            <option value="" disabled selected>👨‍🏫 Select a Mentor to review this project</option>
-            {% for mentor in mentors %}
-                <option value="{{ mentor.id }}">{{ mentor.username }}</option>
-            {% endfor %}
-        </select>
-        
-        <button type="submit" style="width: 100%;">Check Originality</button>
-    </form>
-
-    <hr style="margin: 30px 0; border: 0; border-top: 1px solid #ddd;">
-
-    <h2>My Submissions</h2>
-    
-    {% if my_projects %}
-        <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
-            <thead>
-                <tr style="background: #eee; text-align: left;">
-                    <th style="padding: 10px; border-bottom: 2px solid #ddd;">Title</th>
-                    <th style="padding: 10px; border-bottom: 2px solid #ddd;">Status</th>
-                    <th style="padding: 10px; border-bottom: 2px solid #ddd;">Mentor Feedback</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for project in my_projects %}
-                <tr>
-                    <td style="padding: 10px; border-bottom: 1px solid #eee;">
-                        <strong>{{ project.title }}</strong><br>
-                        <small style="color: #777;">{{ project.created_at|date:"M d, Y" }}</small>
-                    </td>
-                    
-                    <td style="padding: 10px; border-bottom: 1px solid #eee;">
-                        {% if project.status == 'APPROVED' %}
-                            <span style="color: green; font-weight: bold;">✅ Approved</span>
-                        {% elif project.status == 'REJECTED' %}
-                            <span style="color: red; font-weight: bold;">❌ Rejected</span>
-                        {% else %}
-                            <span style="color: orange; font-weight: bold;">⏳ Pending</span>
-                        {% endif %}
-                    </td>
-                    
-                    <td style="padding: 10px; border-bottom: 1px solid #eee; color: #555;">
-                        {% if project.mentor_comment %}
-                            "{{ project.mentor_comment }}"
-                        {% else %}
-                            <em>No feedback yet</em>
-                        {% endif %}
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    {% else %}
-        <p style="text-align: center; color: #777;">You haven't submitted any projects yet.</p>
-    {% endif %}
-
 </div>
+
+<script>
+    // Automatically scroll chat to bottom on load if there's a response
+    window.onload = function() {
+        var chatHistory = document.getElementById('chatHistory');
+        chatHistory.scrollTop = chatHistory.scrollHeight;
+    }
+</script>
 
 </body>
 </html>
