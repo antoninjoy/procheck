@@ -117,5 +117,6 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 # Auth Redirects
-LOGIN_REDIRECT_URL = 'student_chat'  # Go here after login
-LOGOUT_REDIRECT_URL = 'login'        # Go here after logout
+LOGIN_REDIRECT_URL = 'dashboard_redirect' 
+
+LOGOUT_REDIRECT_URL = 'login'

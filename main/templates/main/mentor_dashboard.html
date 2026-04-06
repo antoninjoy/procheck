@@ -18,10 +18,29 @@
     </style>
 </head>
 <body>
+    <div style="background-color: #2c3e50; color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; border-radius: 8px; margin-bottom: 25px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+    <div style="font-size: 18px; font-weight: bold;">
+        🎓 ProCheck Mentor Portal
+    </div>
+    <div style="display: flex; align-items: center; gap: 15px;">
+        <span>Welcome, <strong>{{ user.username }}</strong></span>
+        <form action="{% url 'logout' %}" method="post" style="margin: 0;">
+            {% csrf_token %}
+            <button type="submit" style="background-color: #e74c3c; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; transition: background 0.3s;">
+                Logout
+            </button>
+        </form>
+    </div>
+</div>
 
     <div class="header">
         <h1>👨‍🏫 Mentor Dashboard</h1>
-        <div>Logged in as: <strong>Admin</strong></div>
+        <div style="margin-bottom: 20px;">
+    <a href="{% url 'approved_projects' %}" style="background-color: #27ae60; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
+        🗄️ View All Approved Projects
+    </a>
+</div>
+        <div>Logged in as: <strong>Mentor</strong></div>
     </div>
 
     <h2>Pending Approvals ({{ projects.count }})</h2>

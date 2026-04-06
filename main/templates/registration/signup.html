@@ -1,7 +1,98 @@
-<h2>Student Registration</h2>
-<form method="post">
-  {% csrf_token %}
-  {{ form.as_p }}
-  <button type="submit">Sign Up</button>
-</form>
-<p>Already have an account? <a href="{% url 'login' %}">Login here</a>.</p>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Up - ProCheck</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f9; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; }
+        .auth-container { background: white; padding: 40px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 380px; text-align: center; }
+        .logo-icon { font-size: 45px; margin-bottom: 10px; }
+        h2 { color: #2c3e50; margin-bottom: 5px; margin-top: 0; }
+        .subtitle { color: #7f8c8d; margin-bottom: 25px; font-size: 14px; }
+        form { text-align: left; }
+        form p { margin-bottom: 15px; position: relative; } /* Added relative positioning for error placement */
+        label { display: block; margin-bottom: 5px; font-weight: 600; color: #34495e; font-size: 14px; }
+        input[type="text"], input[type="password"], input[type="email"], input[type="number"], input[type="tel"] { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 14px; transition: border-color 0.3s; }
+        input:focus { border-color: #3498db; outline: none; }
+        button { width: 100%; background-color: #3498db; color: white; border: none; padding: 12px; font-size: 16px; border-radius: 6px; cursor: pointer; margin-top: 15px; font-weight: bold; transition: background 0.3s; }
+        button:hover { background-color: #2980b9; }
+        .auth-links { margin-top: 25px; font-size: 14px; color: #7f8c8d; }
+        .auth-links a { color: #3498db; text-decoration: none; font-weight: bold; }
+        .auth-links a:hover { text-decoration: underline; }
+        .helptext { display: block; font-size: 12px; color: #7f8c8d; margin-top: 5px; } 
+        ul.errorlist { font-size: 12px; color: #e74c3c; margin-top: 5px; padding-left: 0; list-style-type: none; }
+        
+        /* New styles for JavaScript validation errors */
+        .js-error-text { font-size: 12px; color: #e74c3c; margin-top: 5px; display: block; }
+        .invalid-input { border-color: #e74c3c !important; }
+    </style>
+</head>
+<body>
+
+<div class="auth-container">
+    <div class="logo-icon">🚀</div>
+    <h2>Create an Account</h2>
+    <p class="subtitle">Join ProCheck to submit your projects.</p>
+    
+    <form method="post" id="signup-form">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Sign Up</button>
+    </form>
+    
+    <div class="auth-links">
+        <p>Already have an account? <a href="{% url 'login' %}">Log in here</a></p>
+    </div>
+</div>
+
+<script>
+    document.getElementById('signup-form').addEventListener('submit', function(event) {
+        let isValid = true;
+        
+        // 1. Clear any previous Javascript error messages and red borders
+        document.querySelectorAll('.js-error-text').forEach(el => el.remove());
+        document.querySelectorAll('.invalid-input').forEach(el => el.classList.remove('invalid-input'));
+const phoneInput = document.querySelector('input[name="phone"]') || document.querySelector('input[name="phone_number"]');
+        if (phoneInput) {
+            const phoneRegex = /^\d{10}$/;
+            if (!phoneRegex.test(phoneInput.value)) {
+                showError(phoneInput, 'Phone number must be exactly 10 digits.');
+                isValid = false;
+            }
+        }
+        // 2. Validate Email
+        // Django usually outputs the email field with name="email"
+        const emailInput = document.querySelector('input[name="email"]'); 
+        if (emailInput) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(emailInput.value)) {
+                showError(emailInput, 'Please enter a valid email address.');
+                isValid = false;
+            }
+        }
+
+        // 3. Validate Phone Number
+        // IMPORTANT: Ensure 'input[name="phone"]' matches the exact variable name defined in your Django forms.py. 
+        // If your forms.py calls it 'phone_number', change this to 'input[name="phone_number"]'
+        
+
+        // 4. Prevent submission if there are errors
+        if (!isValid) {
+            event.preventDefault(); // Stops the form from sending data to the Django view
+        }
+    });
+
+    // Helper function to inject error messages right under the invalid field
+    function showError(inputElement, message) {
+        inputElement.classList.add('invalid-input');
+        const errorDiv = document.createElement('span');
+        errorDiv.className = 'js-error-text';
+        errorDiv.innerText = message;
+        // Insert the error text right after the input field inside the <p> tag
+        inputElement.parentNode.insertBefore(errorDiv, inputElement.nextSibling);
+    }
+</script>
+
+</body>
+</html>

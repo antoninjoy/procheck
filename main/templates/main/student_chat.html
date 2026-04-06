@@ -66,6 +66,12 @@
         
         <br><label><strong>Project Abstract (Detail):</strong></label><br>
         <textarea name="abstract" required placeholder="Describe what your project does..."></textarea>
+        <select name="mentor_id" required style="width: 100%; padding: 10px; margin-bottom: 15px; border-radius: 5px; border: 1px solid #ccc; background-color: white;">
+            <option value="" disabled selected>👨‍🏫 Select a Mentor to review this project</option>
+            {% for mentor in mentors %}
+                <option value="{{ mentor.id }}">{{ mentor.username }}</option>
+            {% endfor %}
+        </select>
         
         <button type="submit">Check Originality</button>
     </form>

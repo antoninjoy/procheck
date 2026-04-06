@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Approved Projects Database</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f9; margin: 0; padding: 20px; color: #333; }
+        .container { max-width: 1000px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eee; padding-bottom: 20px; margin-bottom: 20px; }
+        .header h1 { margin: 0; color: #2c3e50; font-size: 24px; }
+        .back-btn { background-color: #34495e; color: white; text-decoration: none; padding: 10px 15px; border-radius: 5px; font-weight: bold; transition: background 0.3s; }
+        .back-btn:hover { background-color: #2c3e50; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { padding: 15px; text-align: left; border-bottom: 1px solid #eee; vertical-align: top; }
+        th { background-color: #f8f9fa; color: #34495e; font-weight: 600; text-transform: uppercase; font-size: 13px; letter-spacing: 0.5px; }
+        tr:hover { background-color: #fcfcfc; }
+        .title { font-weight: bold; color: #2980b9; font-size: 16px; margin-bottom: 5px; }
+        .abstract { font-size: 14px; color: #555; line-height: 1.5; }
+        .meta { font-size: 12px; color: #95a5a6; margin-top: 5px; }
+        .empty-state { text-align: center; padding: 50px; color: #7f8c8d; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    
+    <div style="background-color: #2c3e50; color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; border-radius: 8px; margin-bottom: 25px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+        <div style="font-size: 18px; font-weight: bold;">
+            🎓 ProCheck Mentor Portal
+        </div>
+        <div style="display: flex; align-items: center; gap: 15px;">
+            <span>Welcome, <strong>{{ user.username }}</strong></span>
+            <form action="{% url 'logout' %}" method="post" style="margin: 0;">
+                {% csrf_token %}
+                <button type="submit" style="background-color: #e74c3c; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; transition: background 0.3s;">
+                    Logout
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div class="header">
+        <h1>📚 Approved Projects Database</h1>
+        <a href="{% url 'mentor_dashboard' %}" class="back-btn">← Back to Dashboard</a>
+    </div>
+
+    {% if projects %}
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 25%;">Student & Mentor</th>
+                    <th style="width: 75%;">Project Details</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for project in projects %}
+                <tr>
+                    <td>
+                        <strong>{{ project.student.username }}</strong><br>
+                        <span style="font-size: 12px; color: #777;">{{ project.created_at|date:"M d, Y" }}</span>
+                        
+                        <div style="margin-top: 10px;">
+                            <span style="background-color: #e8f8f5; color: #16a085; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: bold; border: 1px solid #a2d9ce; display: inline-block;">
+                                🛡️ Approved by: {{ project.assigned_mentor.username|default:"Admin" }}
+                            </span>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="title">{{ project.title }}</div>
+                        <div class="abstract">{{ project.abstract }}</div>
+                        {% if project.mentor_comment %}
+                            <div class="meta"><strong>Mentor Note:</strong> {{ project.mentor_comment }}</div>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <div class="empty-state">
+            <h2>No projects approved yet.</h2>
+            <p>Once you approve pending ideas, they will appear in this database.</p>
+        </div>
+    {% endif %}
+</div>
+
+</body>
+</html>
