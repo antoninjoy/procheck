@@ -15,6 +15,7 @@ from dotenv import load_dotenv
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
+
 # Load API Key once when server starts
 load_dotenv()
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
@@ -69,64 +70,72 @@ def student_chat(request):
         
         full_text = f"Title: {user_title}\nAbstract: {user_abstract}"
 
+        # 0. Basic exact title check
         if Project.objects.filter(title__iexact=user_title).exists():
-             response_message = f"⚠️ Hold on! A project with the title '{user_title}' already exists."
+             response_message = f"⚠️ Hold on! A project with the exact title '{user_title}' already exists."
              message_class = "warning"
         else:
-            # --- CHECK IF AI BRAIN EXISTS ---
-            if os.path.exists("faiss_index"):
-                try:
-                    embeddings = GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001", google_api_key=GOOGLE_API_KEY)
+            try:
+                embeddings = GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001", google_api_key=GOOGLE_API_KEY)
+                is_duplicate = False
+
+                # --- STEP 1: CHECK APPROVED PROJECTS (Permanent FAISS) ---
+                if os.path.exists("faiss_index"):
                     vector_db = FAISS.load_local("faiss_index", embeddings, allow_dangerous_deserialization=True)
-                    
                     results = vector_db.similarity_search_with_score(full_text, k=1)
                     
-                    if results:
-                        best_match = results[0][0]
-                        score = results[0][1]
-                        similarity_score = round(score, 4)
-                        
-                        if score < 0.50: 
-                            similar_project = best_match.metadata.get('original_title', 'Unknown Project')
-                            response_message = f"⚠️ Duplicate Detected! Your idea is too similar to: '{similar_project}'"
-                            message_class = "warning"
-                            
-                            # ==========================================
-                            # WE REMOVED THE SLOW GEMINI API CALL HERE.
-                            # Instead, we just tell the HTML template to load the 
-                            # suggestions in the background using Javascript!
-                            # ==========================================
-                            needs_suggestions = True
-                            failed_title = user_title
-                            failed_abstract = user_abstract
-                            similar_project_name = similar_project
+                    if results and results[0][1] < 0.50:
+                        is_duplicate = True
+                        similar_project = results[0][0].metadata.get('original_title', 'Unknown Project')
+                        similarity_score = round(results[0][1], 4)
+                        response_message = f"⚠️ Duplicate Detected! Your idea is too similar to an already approved project: '{similar_project}'"
+                        message_class = "warning"
 
-                        else:
-                            # Save the project with the assigned mentor
-                            Project.objects.create(
-                                student=request.user,
-                                assigned_mentor=chosen_mentor, 
-                                title=user_title,
-                                abstract=user_abstract,
-                                status='PENDING'
-                            )
-                            response_message = "✅ Success! Your project is unique and has been submitted to your Mentor."
-                            message_class = "success"
-                            
-                except Exception as e:
-                    response_message = f"Error: {str(e)}"
-                    message_class = "warning"
-            else:
-                # --- AI BRAIN IS EMPTY (FIRST PROJECT) ---
-                Project.objects.create(
-                    student=request.user,
-                    assigned_mentor=chosen_mentor,
-                    title=user_title,
-                    abstract=user_abstract,
-                    status='PENDING'
-                )
-                response_message = "✅ Success! Your project is unique (it's the first one in the system!) and has been submitted."
-                message_class = "success"
+                # --- STEP 2: THE FAIRNESS LOCK (In-Memory Pending Projects) ---
+                if not is_duplicate:
+                    # Get all projects that are currently waiting for a mentor
+                    pending_projects = Project.objects.filter(status='PENDING')
+                    
+                    if pending_projects.exists():
+                        pending_docs = []
+                        for p in pending_projects:
+                            doc_text = f"Title: {p.title}\nAbstract: {p.abstract}"
+                            pending_docs.append(Document(page_content=doc_text, metadata={"original_title": p.title}))
+
+                        # Create a temporary AI Brain just for pending projects
+                        temp_vector_db = FAISS.from_documents(pending_docs, embeddings)
+                        temp_results = temp_vector_db.similarity_search_with_score(full_text, k=1)
+
+                        if temp_results and temp_results[0][1] < 0.50:
+                            is_duplicate = True
+                            similar_project = temp_results[0][0].metadata.get('original_title', 'Unknown Project')
+                            similarity_score = round(temp_results[0][1], 4)
+                            # Custom message for the Fairness Lock
+                            response_message = f"⏳ Fairness Lock! Another student submitted a similar project ('{similar_project}') before you. It is currently in the queue for a mentor. First come, first served!"
+                            message_class = "warning"
+
+                # --- STEP 3: TRIGGER SUGGESTIONS OR SAVE ---
+                if is_duplicate:
+                    # If it failed either Step 1 or Step 2, trigger the Javascript AI loader
+                    needs_suggestions = True
+                    failed_title = user_title
+                    failed_abstract = user_abstract
+                    similar_project_name = similar_project
+                else:
+                    # It is 100% unique. Save it to the database.
+                    Project.objects.create(
+                        student=request.user,
+                        assigned_mentor=chosen_mentor, 
+                        title=user_title,
+                        abstract=user_abstract,
+                        status='PENDING'
+                    )
+                    response_message = "✅ Success! Your project is unique and has been submitted to your Mentor."
+                    message_class = "success"
+                        
+            except Exception as e:
+                response_message = f"Error: {str(e)}"
+                message_class = "warning"
 
     return render(request, 'main/student_chat.html', {
         'response_message': response_message,
@@ -201,6 +210,7 @@ def approved_projects(request):
     # This remains unfiltered so all mentors can see the global database of approved projects
     projects = Project.objects.filter(status='APPROVED').order_by('-created_at')
     return render(request, 'main/approved_projects.html', {'projects': projects})
+
 @login_required
 def generate_suggestions_api(request):
     if request.method == 'POST':

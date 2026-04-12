@@ -1,77 +1,270 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ProCheck - Mentor Dashboard</title>
+    
     <style>
-        body { font-family: sans-serif; max-width: 1000px; margin: 0 auto; padding: 20px; background-color: #f4f4f9; }
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
-        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px; }
-        .card h3 { margin-top: 0; color: #2c3e50; }
-        .abstract { background: #f8f9fa; padding: 15px; border-left: 4px solid #3498db; margin: 15px 0; color: #555; }
-        .actions { display: flex; gap: 10px; margin-top: 15px; }
-        button { padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; color: white; font-weight: bold; }
-        .btn-approve { background-color: #27ae60; }
-        .btn-reject { background-color: #e74c3c; }
-        .btn-approve:hover { background-color: #219150; }
-        .btn-reject:hover { background-color: #c0392b; }
-        input[type="text"] { padding: 10px; border: 1px solid #ddd; border-radius: 5px; flex-grow: 1; }
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+            --success: #10b981;
+            --success-hover: #059669;
+            --danger: #ef4444;
+            --danger-hover: #dc2626;
+        }
+
+        body { 
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            line-height: 1.5;
+        }
+
+        /* --- Header Navigation --- */
+        .top-nav {
+            background-color: var(--card-bg);
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+        .nav-logo { font-size: 20px; font-weight: 700; color: var(--primary); }
+        .nav-user { display: flex; align-items: center; gap: 15px; font-size: 14px; color: var(--text-muted); }
+        .logout-btn {
+            background: none;
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+        .logout-btn:hover { background: var(--bg-color); color: var(--text-main); }
+
+        /* --- Main Layout --- */
+        .main-container {
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 0 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+
+        /* --- Dashboard Header --- */
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-bottom: 10px;
+        }
+        .dashboard-header h1 {
+            margin: 0 0 5px 0;
+            color: var(--text-main);
+            font-size: 24px;
+        }
+        .dashboard-header p {
+            margin: 0;
+            color: var(--text-muted);
+            font-size: 15px;
+        }
+        .view-all-btn {
+            background-color: #f1f5f9;
+            color: #475569;
+            text-decoration: none;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s;
+            border: 1px solid #cbd5e1;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .view-all-btn:hover {
+            background-color: #e2e8f0;
+            color: var(--text-main);
+        }
+
+        /* --- Project Cards --- */
+        .project-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+            margin-bottom: 25px;
+        }
+        
+        .card-header {
+            padding: 20px 25px 15px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .card-header h3 {
+            margin: 0 0 5px 0;
+            color: var(--text-main);
+            font-size: 18px;
+        }
+        .meta-info {
+            font-size: 13px;
+            color: var(--text-muted);
+            display: flex;
+            gap: 15px;
+        }
+        .meta-info span { display: flex; align-items: center; gap: 5px; }
+
+        .card-body { padding: 25px; }
+        .abstract-box {
+            background: #f8fafc;
+            border-left: 4px solid var(--primary);
+            padding: 15px 20px;
+            border-radius: 0 8px 8px 0;
+            color: #334155;
+            font-size: 15px;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        /* --- Actions Area --- */
+        .action-area {
+            display: flex;
+            gap: 15px;
+            align-items: stretch;
+            background: #f1f5f9;
+            padding: 15px;
+            border-radius: 8px;
+        }
+        
+        .action-input {
+            flex-grow: 1;
+            padding: 10px 15px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 14px;
+            background-color: white;
+            transition: border-color 0.2s;
+        }
+        .action-input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+        
+        .btn {
+            border: none;
+            padding: 0 20px;
+            font-size: 14px;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: white;
+        }
+        .btn-approve { background-color: var(--success); }
+        .btn-approve:hover { background-color: var(--success-hover); }
+        .btn-reject { background-color: var(--danger); }
+        .btn-reject:hover { background-color: var(--danger-hover); }
+
+        /* --- Empty State --- */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            background: var(--card-bg);
+            border-radius: 12px;
+            border: 1px dashed #cbd5e1;
+            color: var(--text-muted);
+        }
+        .empty-icon { font-size: 40px; margin-bottom: 15px; display: block; }
     </style>
 </head>
 <body>
-    <div style="background-color: #2c3e50; color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; border-radius: 8px; margin-bottom: 25px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-    <div style="font-size: 18px; font-weight: bold;">
-        🎓 ProCheck Mentor Portal
-    </div>
-    <div style="display: flex; align-items: center; gap: 15px;">
-        <span>Welcome, <strong>{{ user.username }}</strong></span>
-        <form action="{% url 'logout' %}" method="post" style="margin: 0;">
+
+<div class="top-nav">
+    <div class="nav-logo">ProCheck</div>
+    <div class="nav-user">
+        <span>Mentor Portal: <strong>{{ user.username }}</strong></span>
+        <form action="{% url 'logout' %}" method="post" style="display:inline; margin:0;">
             {% csrf_token %}
-            <button type="submit" style="background-color: #e74c3c; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; transition: background 0.3s;">
-                Logout
-            </button>
+            <button type="submit" class="logout-btn">Log out</button>
         </form>
     </div>
 </div>
 
-    <div class="header">
-        <h1>👨‍🏫 Mentor Dashboard</h1>
-        <div style="margin-bottom: 20px;">
-    <a href="{% url 'approved_projects' %}" style="background-color: #27ae60; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
-        🗄️ View All Approved Projects
-    </a>
-</div>
-        <div>Logged in as: <strong>Mentor</strong></div>
+<div class="main-container">
+    
+    <div class="dashboard-header">
+        <div>
+            <h1>👨‍🏫 Review Inbox</h1>
+            <p>You have <strong>{{ projects.count }}</strong> pending project{% if projects.count != 1 %}s{% endif %} to review.</p>
+        </div>
+        <a href="{% url 'approved_projects' %}" class="view-all-btn">
+            🗄️ View Global Approved Database
+        </a>
     </div>
 
-    <h2>Pending Approvals ({{ projects.count }})</h2>
+    <div class="projects-queue">
+        {% if projects %}
+            {% for p in projects %}
+            <div class="project-card">
+                <div class="card-header">
+                    <h3>{{ p.title }}</h3>
+                    <div class="meta-info">
+                        <span>👤 <strong>Student:</strong> {{ p.student.username }}</span>
+                        <span>📅 <strong>Submitted:</strong> {{ p.created_at|date:"M d, Y" }}</span>
+                    </div>
+                </div>
+                
+                <div class="card-body">
+                    <div style="font-size: 13px; font-weight: 600; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase;">Project Abstract</div>
+                    <div class="abstract-box">
+                        {{ p.abstract }}
+                    </div>
 
-    {% if projects %}
-        {% for p in projects %}
-        <div class="card">
-            <h3>{{ p.title }}</h3>
-            <p><strong>Student:</strong> {{ p.student.username }} | <strong>Date:</strong> {{ p.created_at|date:"M d, Y" }}</p>
-            
-            <div class="abstract">
-                {{ p.abstract }}
+                    <form method="POST">
+                        {% csrf_token %}
+                        <input type="hidden" name="project_id" value="{{ p.id }}">
+                        
+                        <div class="action-area">
+                            <input type="text" name="comment" class="action-input" placeholder="Add feedback or reason for rejection (optional)...">
+                            
+                            <button type="submit" name="action" value="approve" class="btn btn-approve">
+                                ✅ Approve
+                            </button>
+                            
+                            <button type="submit" name="action" value="reject" class="btn btn-reject">
+                                ❌ Reject
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
+            {% endfor %}
+        {% else %}
+            <div class="empty-state">
+                <span class="empty-icon">🎉</span>
+                <h3 style="margin:0 0 10px 0; color:var(--text-main);">Inbox Zero!</h3>
+                <p style="margin:0;">You have reviewed all pending submissions. Great job.</p>
+            </div>
+        {% endif %}
+    </div>
 
-            <form method="POST" class="actions">
-                {% csrf_token %}
-                <input type="hidden" name="project_id" value="{{ p.id }}">
-                
-                <button type="submit" name="action" value="approve" class="btn-approve">✅ Approve & Add to Database</button>
-                
-                <input type="text" name="comment" placeholder="Reason for rejection (if rejecting)...">
-                <button type="submit" name="action" value="reject" class="btn-reject">❌ Reject</button>
-            </form>
-        </div>
-        {% endfor %}
-    {% else %}
-        <div class="card" style="text-align: center; padding: 40px;">
-            <h3>🎉 No pending projects!</h3>
-            <p>You have reviewed all submissions.</p>
-        </div>
-    {% endif %}
+</div>
 
 </body>
 </html>
