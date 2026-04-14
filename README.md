@@ -28,3 +28,34 @@ Follow these steps to run ProCheck locally on your machine.
 ```bash
 git clone [https://github.com/antoninjoy/procheck.git](https://github.com/antoninjoy/procheck.git)
 cd procheck
+2. Set up a Virtual Environment
+Bash
+python -m venv venv
+Activate the environment (Choose one based on your OS):
+
+Windows:
+
+Bash
+venv\Scripts\activate
+Mac/Linux:
+
+Bash
+source venv/bin/activate
+3. Install Dependencies
+Bash
+pip install django langchain langchain-google-genai faiss-cpu python-dotenv
+4. Configure Environment Variables
+Create a file named .env in the root folder and paste this inside:
+
+Code snippet
+GOOGLE_API_KEY=your_gemini_api_key_here
+5. Run Database Migrations
+Bash
+python manage.py makemigrations
+python manage.py migrate
+6. Create a Superuser (Admin/Mentor)
+Bash
+python manage.py createsuperuser
+7. Run the Development Server
+Bash
+python manage.py runserver
