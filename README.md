@@ -11,6 +11,7 @@ Unlike traditional plagiarism checkers that rely on exact keyword matching, ProC
 * **Interactive Student Portal:** A chat-based UI where students can securely submit their project Titles and Abstracts for instant AI evaluation.
 * **Mentor Governance Dashboard:** A secure dashboard where mentors can review pending projects. Approving a project automatically ingests its vector data into the FAISS "AI Brain" to protect the idea from future duplication.
 * **Concurrency Protection:** Includes backend double-check mechanisms to prevent race conditions when multiple mentors process projects simultaneously.
+* **https://procheck-app.onrender.com
 
 ## 🛠️ Tech Stack
 
